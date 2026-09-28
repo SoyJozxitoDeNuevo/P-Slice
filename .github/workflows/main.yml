@@ -1,24 +1,32 @@
-name: Main
+name: Build the game
 
-on: workflow_dispatch
-
+on:
+  push:
+    branches: [master-dev]
+  workflow_dispatch:
 jobs:
-  Build:
-    name: ${{ matrix.name }}
-    strategy:
-      matrix:
-        include:
-          - name: Android
-            os: macos-15
-            buildArgs: "android -ONLY_ARMV7"
-            setupCommand: sh ./setup/unix.sh
-            artifactName: androidBuild
-            artifactPath: "export/release/android/bin/app/build/outputs/apk/release/*.apk"
-    uses: ./.github/workflows/build.yml
+
+  BuildMobileCache:
+    name: Build Caches
+    permissions: write-all
+    uses: ./.github/workflows/dependencies.yml
     with:
-        name: ${{ matrix.name }}
-        os: ${{ matrix.os }}
-        buildArgs: ${{ matrix.buildArgs }}
-        setupCommand: ${{ matrix.setupCommand }}
-        artifactName: ${{ matrix.artifactName }}
-        artifactPath: ${{ matrix.artifactPath }}
+      os: macos-15
+      CACHE_NAME: P-Slice.1.0.mobile-cache
+      setupScript: sh ./setup/mobile.sh
+
+  BuildAndroid:
+    permissions: write-all
+    needs: BuildMobileCache
+    name: Build Android
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      name: Android
+      os: ubuntu-24.04
+      buildArgs: "android"
+      exportPath: android
+      artifactName: P-Slice.1.0.android
+      cacheLibrariesPath: P-Slice.1.0.mobile-cache
+      artifactPath: "export/release/android/bin/app/build/outputs/apk/release/*.apk"
+      cachePath: P-Slice.1.0.build-android
